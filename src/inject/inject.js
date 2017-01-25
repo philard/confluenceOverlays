@@ -25,20 +25,35 @@ chrome.extension.sendMessage({}, function(response) {
 		row.insertCell();
 		var cell4 = row.insertCell();
 		cell1.innerHTML = "Stats";
-		cell4.innerHTML = "total pass:";
+		cell4.innerHTML = "";
 
 
 
 
 		let passed = Array.prototype.filter.call(document.querySelectorAll(
-		'td.highlight-green'),
-		(el) => (el.innerText.startsWith('Passed')));
+			'td.confluenceTd'),
+			(el) => (el.innerText.startsWith('Passed')));
+		cell4.innerHTML = cell4.innerHTML + 'Passed:' + passed.length;
 
-		passed.forEach((el) => el.style['backgroundColor'] = 'lightgreen');
+		let failed = Array.prototype.filter.call(document.querySelectorAll(
+			'td.confluenceTd'),
+			(el) => (el.innerText.startsWith('Failed')));
+		cell4.innerHTML = cell4.innerHTML + '<br>Failed: '+ failed.length;
 
-		cell4.innerHTML = cell4.innerHTML + passed.length;
+		let skipped = Array.prototype.filter.call(document.querySelectorAll(
+			'td.confluenceTd'),
+			(el) => (el.innerText.startsWith('Skipped')));
+		cell4.innerHTML = cell4.innerHTML + '<br>Skipped: '+ skipped.length;
 
-        console.log("Hello. This message was sent from scripts/inject.js");
+		let blocked = Array.prototype.filter.call(document.querySelectorAll(
+			'td.confluenceTd'),
+			(el) => (el.innerText.startsWith('Blocked')));
+		cell4.innerHTML = cell4.innerHTML + '<br>Blocked: '+ blocked.length;
+		
+		Array.prototype.forEach.call(blocked,
+			(el) => el.style['background-color'] = 'red' );
+
+        console.log("scripts/inject.js completed");
 	}
 	}, 10);
 });
