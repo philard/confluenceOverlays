@@ -20,7 +20,7 @@ chrome.extension.sendMessage({}, function(response) {
 
 
     let countableTexts = ['Passed', 'Failed', 'Skipped', 'Blocked'];
-    let countableJIRAStatuses = ['ON HOLD', 'QA TEST', 'CLOSED', 'DELIVERED'];
+    let countableJIRAStatuses = ['On Hold', 'QA TEST', 'CLOSED', 'DELIVERED'];
 
     // *All* other DOM links are relative to this starting anchor. ...
     let testResultsHeader = Array.prototype.slice.call(
