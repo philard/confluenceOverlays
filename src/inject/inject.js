@@ -18,9 +18,9 @@ chrome.extension.sendMessage({}, function(response) {
 
 
 
-		let testResultsHeader = Array.prototype.filter.call(document.querySelectorAll(
-  		'thead div.tablesorter-header-inner'),
-  		(el) => el.innerText == "Test Result")[0];
+		let testResultsHeader = document.querySelectorAll('thead div.tablesorter-header-inner');
+    testResultsHeader = Array.prototype.filter.call(testResultsHeader,
+      (el) => el.innerText.indexOf('Test Result'))[0];
 
     let headers = Array.prototype.slice.call(
       getClosest('tr', testResultsHeader).childNodes);
