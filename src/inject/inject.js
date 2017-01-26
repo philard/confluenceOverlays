@@ -20,7 +20,7 @@ chrome.extension.sendMessage({}, function(response) {
 
 
     let countableTexts = ['Passed', 'Failed', 'Skipped', 'Blocked'];
-    let countableJIRAStatuses = ['On Hold', 'QA TEST', 'CLOSED', 'DELIVERED'];
+    let countableJIRAStatuses = ['On Hold', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS'];
 
     // *All* other DOM links are relative to this starting anchor. ...
     let testResultsHeader = Array.prototype.slice.call(
@@ -32,7 +32,7 @@ chrome.extension.sendMessage({}, function(response) {
     let statsRow = parentTable.insertRow(1);
 
 
-    let jIRASpans = parentTable.querySelectorAll('span.aui-lozenge-success');
+    let jIRASpans = parentTable.querySelectorAll('span.aui-lozenge');
     let jIRAInfos = [];
     for(i =0; jIRASpans.length > i; i++) {
       let td = getClosest('td', jIRASpans[i]);
