@@ -2,6 +2,10 @@ chrome.extension.sendMessage({}, function(response) {
 	var readyStateCheckInterval = setInterval(function() {
 	if (document.readyState === "complete") {
 		clearInterval(readyStateCheckInterval);
+    console.log("Hello. This message was sent from scripts/inject.js");
+
+
+    //**START DOM CONNECTORS **//
 
     function getClosest(selector, element) {
       let res = element;
@@ -11,25 +15,25 @@ chrome.extension.sendMessage({}, function(response) {
       return res;
     }
 
-		// ----------------------------------------------------------
-		// This part of the script triggers when page is done loading
-		console.log("Hello. This message was sent from scripts/inject.js");
-		// ----------------------------------------------------------
-
-
-
+    function getTdsForHeaderIndex(header, selector) {
+      //TODO add extra filtering using selector
+      let headerIndex = (header.index || header);
+      let tds = parentTable.querySelectorAll('tbody > tr > td:nth-child(' + (headerIndex+1) + ')');
+      return (Array.prototype.slice.call(tds) || []);
+    }
 
     let countableTexts = ['Passed', 'Failed', 'Skipped', 'Blocked'];
     let countableJIRAStatuses = ['On Hold', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS'];
 
-    // *All* other DOM links are relative to this starting anchor. ...
+
+    // *All* other DOM links are based on testResultsHeader.
     let testResultsHeader = Array.prototype.slice.call(
-      document.querySelectorAll('thead div.tablesorter-header-inner'))
-      .filter((td) => (td.innerText.indexOf('Test Result') === 0))
-      [0].parentNode;
-    // ... e.g. parentTable & statsRow
-    let parentTable = getClosest('table', testResultsHeader);
-    let statsRow = parentTable.insertRow(1);
+      document.querySelectorAll('thead > tr > th > div.tablesorter-header-inner'))
+      .filter((el) => (el.innerText.indexOf('Test Result') === 0))  //The first p should say Test Results.
+      [0].parentNode;                                               //Take the parent th.
+
+    let parentTable = getClosest('table', testResultsHeader);       //Based on testResultsHeader
+    let statsRow = parentTable.insertRow(1);                        //Based on parentTable
 
 
     let jIRASpans = parentTable.querySelectorAll('span.aui-lozenge');
@@ -86,8 +90,6 @@ chrome.extension.sendMessage({}, function(response) {
         });
       }
 
-
-
       return {
         'label': label,
         'index': index,
@@ -98,21 +100,11 @@ chrome.extension.sendMessage({}, function(response) {
         'jIRAInfos': jIRAInfosForHeaderInfo,
         'jIRAInfosForText': jIRAInfosForHeaderInfoForText
       };
-    });
+    });//headerInfos
 
 
-    headerInfos.forEach((headerInfo, index) => {
 
-    });
-
-		// headerInfos[0].statsEl.innerHTML = "Stats";
-
-    function getTdsForHeaderIndex(header, selector) {
-      //TODO add extra filtering using selector
-      let headerIndex = (header.index || header);
-      let tds = parentTable.querySelectorAll('tbody > tr > td:nth-child(' + (headerIndex+1) + ')');
-      return (Array.prototype.slice.call(tds) || []);
-    }
+//**START PAGE LOAD STATS **//
 
     //updateStatsUi
     headerInfos.forEach(updateStatsUi);
@@ -143,11 +135,6 @@ chrome.extension.sendMessage({}, function(response) {
 
 
     //TODO modularize me
-
-    // columnsWithJiraInfo.forEach((info) => {
-    //   var cell = statsRow.insertCell();
-    //   cell.innerHTML = 'JIRA links found:' + info.jIRAInfos.length;
-    // });
 
 
     console.log("scripts/inject.js completed");
