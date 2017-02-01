@@ -25,7 +25,7 @@ chrome.extension.sendMessage({}, function(response) {
     // *All* other DOM links are relative to this starting anchor. ...
     let testResultsHeader = Array.prototype.slice.call(
       document.querySelectorAll('thead div.tablesorter-header-inner'))
-      .filter((td) => (td.innerText.indexOf('Test Result') == 0))
+      .filter((td) => (td.innerText.indexOf('Test Result') === 0))
       [0].parentNode;
     // ... e.g. parentTable & statsRow
     let parentTable = getClosest('table', testResultsHeader);
@@ -52,7 +52,7 @@ chrome.extension.sendMessage({}, function(response) {
       let label = null;
 
       //jIRAInfosForHeaderInfo
-      let jIRAInfosForHeaderInfo = jIRAInfos.filter((info) => info.yIndex == index)
+      let jIRAInfosForHeaderInfo = jIRAInfos.filter((info) => info.yIndex == index);
 
       //jIRAInfosForHeaderInfoForText
       let jIRAInfosForHeaderInfoForText = {};
@@ -65,13 +65,13 @@ chrome.extension.sendMessage({}, function(response) {
       let tdElsForText = {};
 
       //label
-      if(index == 0) {
+      if(index === 0) {
         label = 'leftAxis';
       } else if(td == testResultsHeader) {
         label = 'testResult';
 
         countableTexts.forEach((text) => {
-          let filtered = tdEls.filter((tdEl) => tdEl.innerText.indexOf(text) == 0);
+          let filtered = tdEls.filter((tdEl) => tdEl.innerText.indexOf(text) === 0);
           tdElsForText[text] = filtered;
         });
 
@@ -119,11 +119,11 @@ chrome.extension.sendMessage({}, function(response) {
     function updateStatsUi(headerInfo) {
       switch(headerInfo.label) {
         case "leftAxis":
-          headerInfo.statsEl.innerText = 'Stats'
+          headerInfo.statsEl.innerText = 'Stats';
           break;
         case "testResult":
           countableTexts.forEach((text) => {
-            let stat = text + ': ' + headerInfo.tdElsForText[text].length + '<br>'
+            let stat = text + ': ' + headerInfo.tdElsForText[text].length + '<br>';
             headerInfo.statsEl.innerHTML += stat;
           });
           break;
@@ -133,6 +133,9 @@ chrome.extension.sendMessage({}, function(response) {
           Object.keys(headerInfo.jIRAInfosForText).forEach((status) => {
             let count = headerInfo.jIRAInfosForText[status].length;
             headerInfo.statsEl.innerHTML += status + ': ' + count + '<br>';
+            if(status == 'STATUS') {
+              headerInfo.statsEl.innerHTML += '***TODO FIX RACE CONDITION***';
+            }
           });
           break;
       }
