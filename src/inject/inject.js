@@ -9,12 +9,13 @@ chrome.extension.sendMessage({}, function(response) {
 });
 function inject() {
 //**START CONFIGURABLE CONSTANTS**//
-const countableTexts = ['Passed', 'Failed', 'Skipped', 'Blocked'];
-const countableJIRAStatuses = ['On Hold', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS'];
-
+let state = {
+  'countableTexts': ['Passed', 'Failed', 'Skipped', 'Blocked'],
+  'countableJIRAStatuses': ['On Hold', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS']
+};
 
 //**START DOM CONNECTORS **//
-let state = domConnectors();
+Object.assign(state, domConnectors());
 function domConnectors() {
 
   // *All* other DOM links are based on testResultsHeader.
@@ -141,7 +142,7 @@ function updateStatsUi(headerInfo) {
       });
       break;
   }
-}
+}//updateStatsUi
 
 function reactToJIRAStatusChange(headerInfo, status) {
   let count = headerInfo.jIRAInfosForText[status].length;
