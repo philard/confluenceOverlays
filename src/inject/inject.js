@@ -1,17 +1,23 @@
 chrome.extension.sendMessage({}, function(response) {
+  var observer;
   var readyStateCheckInterval = setInterval(function() {
-  if (document.readyState !== "complete") return;
+    // if (!observer) {observer = startWatchingJIRADOM();}
+    if (document.readyState !== 'interactive' &&
+        document.readyState !== 'loading') return; //loading, interactive or complete
     clearInterval(readyStateCheckInterval);
     console.log("Hello. This message was sent from scripts/inject.js");
     inject();
     console.log("scripts/inject.js completed");
   }, 10);
 });
+
+
+
 function inject() {
 //**START CONFIGURABLE CONSTANTS**//
 let state = {
   'countableTexts': ['Passed', 'Failed', 'Skipped', 'Blocked'],
-  'countableJIRAStatuses': ['On Hold', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS']
+  'countableJIRAStatuses': ['ON HOLD', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS']
 };
 
 //**START DOM CONNECTORS **//
@@ -21,25 +27,26 @@ function domConnectors() {
   // *All* other DOM links are based on testResultsHeader.
   let testResultsHeader = Array.prototype.slice.call(
     document.querySelectorAll('thead > tr > th > div.tablesorter-header-inner'))
-    .filter((el) => (el.innerText.indexOf('Test Result') === 0))  //The first p should say Test Results.
+    .filter((el) => (el.innerText.indexOf('Test Result') === 0))  //The first p should contain "Test Result".
     [0].parentNode;                                               //Take the parent th.
 
+  //parentTable
   let parentTable = getClosest('table', testResultsHeader);       //Based on testResultsHeader
+  //statsRow
   let statsRow = parentTable.insertRow(1);                        //Based on parentTable
 
-  let jIRASpans = parentTable.querySelectorAll('span.aui-lozenge');
+  let jIRASpans = parentTable.querySelectorAll('.confluence-jim-macro.jira-issue');
+
+  //jIRAInfos
   let jIRAInfos = [];
   for(i =0; jIRASpans.length > i; i++) {
     let td = getClosest('td', jIRASpans[i]);
     let yIndex = Array.prototype.slice.call(td.parentNode.childNodes).indexOf(td);
     jIRAInfo = {
-      'jIRASpan': jIRASpans[i],
-      'status': function() {
-        let status = this.jIRASpan.innerText;
-        return status;
-      },
+      'td': td,
       'yIndex': yIndex
     };
+    jIRAInfo.status = getJIRAStatusFromTd.bind(jIRAInfo);
     jIRAInfos.push(jIRAInfo);
   }
 
@@ -52,6 +59,11 @@ function domConnectors() {
 
   return {headerInfos};
 
+  function getJIRAStatusFromTd(td) {
+    if(td === undefined) td = this.td;
+    let status = td.querySelector('span.aui-lozenge').innerText;
+    return status;
+  }
 
   function createHeaderInfo(td, index, jIRAInfos, parentTable, statsRow, testResultsHeader) {
     let label = null;
@@ -72,8 +84,7 @@ function domConnectors() {
 
     } else if(jIRAInfosHere.length > 0) {
       label = 'JIRA';
-
-      // Maybe not nessisary untill first cycle update. jIRAInfosForText = groupJIRALinks(jIRAInfosHere);
+      //see refreshJIRAHeader for data population
     }
 
     return {
@@ -139,46 +150,54 @@ function updateStatsUi(headerInfo) {
       });
       break;
     case "JIRA":
+      startWatchingJIRADOM(headerInfo);
       refreshJIRAHeader(headerInfo);
-
-
-
       break;
   }
 }//updateStatsUi
 
+//**START JIRA change events **//
 function refreshJIRAHeader(headerInfo) {
-
   //update latest value for jIRAInfosForText
   headerInfo.jIRAInfosForText = groupJIRALinks(headerInfo.jIRAInfos);
 
-  headerInfo.statsEl.innerHTML = '_JIRA statuses_<br>';
+  headerInfo.statsEl.innerHTML = '';
   state.countableJIRAStatuses.forEach((status) => {
                           // headerInfo.jIRAInfos.forEach((jIRAInfo) => {
 
     let count = headerInfo.jIRAInfosForText[status].length;
     headerInfo.statsEl.innerHTML += status + ': ' + count + '<br>';
 
-    //sanity check
     if(status == 'STATUS' && count > 0) {
-      headerInfo.statsEl.innerHTML += '***STATUS means failed RACE CONDITION***';
+    //sanity check
+    //   headerInfo.statsEl.innerHTML += '***"STATUS" meaning failed RACE CONDITION***';
     }
   });
 }
-//**START JIRA change events **//
-var target = document.querySelector('.confluence-jim-macro.jira-issue');
-// create an observer instance
-var observer = new MutationObserver(reactToJIRAStatusChange);
-// configuration of the observer:
-var config = { attributes: true, childList: true, characterData: true };
-// pass in the target node, as well as the observer options
-observer.observe(target, config);
 
-function reactToJIRAStatusChange(mutations) {
-  mutations.forEach(function(mutation) { console.log(mutation.type); });
 
-  let headerInfo = state.headerInfos[4];
-  refreshJIRAHeader(null);
+function startWatchingJIRADOM(headerInfo) {
+  // var target = document.querySelector('table.confluenceTable .confluence-jim-macro.jira-issue').parentNode;
+  let selJIRASpans = 'table.confluenceTable td:nth-child(' + (headerInfo.index + 1) + ') span.confluence-jim-macro.jira-issue';
+  let targets = document.querySelectorAll(selJIRASpans);
+
+  for(var i = 0; i < targets.length; i++) {
+    let target = targets[i].parentNode;
+    // create an observer instance
+    var observer = new MutationObserver(reactToJIRAStatusChange);
+    // configuration of the observer:
+    var config = { attributes: true, childList: true, characterData: true };
+    // pass in the target node, as well as the observer options
+    observer.observe(target, config);
+  }
+
+  function reactToJIRAStatusChange(mutations) {
+    mutations.forEach(function(mutation) { console.log('mutation.type' + mutation.type); });
+
+    // let headerInfo = state.headerInfos[4];
+    if(headerInfo) refreshJIRAHeader(headerInfo);
+  }
+  return true;
 }
 
 //TODO modularize me
