@@ -33,20 +33,22 @@ function domConnectors() {
     let td = getClosest('td', jIRASpans[i]);
     let yIndex = Array.prototype.slice.call(td.parentNode.childNodes).indexOf(td);
     jIRAInfo = {
-      'status': jIRASpans[i].innerText,
+      'jIRASpan': jIRASpans[i],
+      'status': function() {
+        let status = this.jIRASpan.innerText;
+        return status;
+      },
       'yIndex': yIndex
     };
     jIRAInfos.push(jIRAInfo);
   }
 
-  //headerInfos
   let thElsInFirstThead = Array.prototype.slice.call(
     getClosest('tr', testResultsHeader).childNodes)
     .filter((thEl) => (thEl.nodeName == "TH"));
+  //headerInfos
   let headerInfos = thElsInFirstThead.map((td, index) =>
     createHeaderInfo(td, index, jIRAInfos, parentTable, statsRow, testResultsHeader));
-
-
 
   return {headerInfos};
 
@@ -63,7 +65,7 @@ function domConnectors() {
     } else if(td == testResultsHeader) {
       label = 'testResult';
 
-      countableTexts.forEach((text) => {
+      state.countableTexts.forEach((text) => {
         let filtered = tdEls.filter((tdEl) => tdEl.innerText.indexOf(text) === 0);
         tdElsForText[text] = filtered;
       });
@@ -71,12 +73,7 @@ function domConnectors() {
     } else if(jIRAInfosHere.length > 0) {
       label = 'JIRA';
 
-      countableJIRAStatuses.forEach((status) => {
-        let forStatus = jIRAInfosHere.filter((jIRAInfo) => {
-          return jIRAInfo.status == status;
-        });
-        jIRAInfosForText[status] = forStatus;
-      });
+      // Maybe not nessisary untill first cycle update. jIRAInfosForText = groupJIRALinks(jIRAInfosHere);
     }
 
     return {
@@ -112,63 +109,77 @@ function domConnectors() {
   }
 }//domConnectors
 
-
+//**COMMON**//
+function groupJIRALinks(jIRAInfosHere) {
+  let jIRAInfosForText = {};
+  state.countableJIRAStatuses.forEach((status) => {
+    let forStatus = jIRAInfosHere.filter((jIRAInfo) => {
+      let infoStatus = jIRAInfo.status();
+      return infoStatus.toUpperCase() == status.toUpperCase();
+    });
+    jIRAInfosForText[status] = forStatus;
+  });
+  return jIRAInfosForText;
+}
 
 //**START PAGE LOAD STATS **//
 
 //updateStatsUi
 state.headerInfos.forEach(updateStatsUi);
+
 function updateStatsUi(headerInfo) {
   switch(headerInfo.label) {
     case "leftAxis":
       headerInfo.statsEl.innerText = 'Stats';
       break;
     case "testResult":
-      countableTexts.forEach((text) => {
+      state.countableTexts.forEach((text) => {
         let stat = text + ': ' + headerInfo.tdElsForText[text].length + '<br>';
         headerInfo.statsEl.innerHTML += stat;
       });
       break;
     case "JIRA":
+      refreshJIRAHeader(headerInfo);
 
-      headerInfo.statsEl.innerHTML = '_JIRA statuses_<br>';
-      Object.keys(headerInfo.jIRAInfosForText).forEach((status) => {
 
-        let count = headerInfo.jIRAInfosForText[status].length;
-        headerInfo.statsEl.innerHTML += status + ': ' + count + '<br>';
-        if(status == 'STATUS') {
-          headerInfo.statsEl.innerHTML += '***TODO FIX RACE CONDITION***';
-        }
-      });
+
       break;
   }
 }//updateStatsUi
 
-function reactToJIRAStatusChange(headerInfo, status) {
-  let count = headerInfo.jIRAInfosForText[status].length;
-  headerInfo.statsEl.innerHTML += status + ': ' + count + '<br>';
-  if(status == 'STATUS') {
-    headerInfo.statsEl.innerHTML += '***TODO FIX RACE CONDITION***';
-  }
+function refreshJIRAHeader(headerInfo) {
+
+  //update latest value for jIRAInfosForText
+  headerInfo.jIRAInfosForText = groupJIRALinks(headerInfo.jIRAInfos);
+
+  headerInfo.statsEl.innerHTML = '_JIRA statuses_<br>';
+  state.countableJIRAStatuses.forEach((status) => {
+                          // headerInfo.jIRAInfos.forEach((jIRAInfo) => {
+
+    let count = headerInfo.jIRAInfosForText[status].length;
+    headerInfo.statsEl.innerHTML += status + ': ' + count + '<br>';
+
+    //sanity check
+    if(status == 'STATUS' && count > 0) {
+      headerInfo.statsEl.innerHTML += '***STATUS means failed RACE CONDITION***';
+    }
+  });
 }
-
-
-
 //**START JIRA change events **//
 var target = document.querySelector('.confluence-jim-macro.jira-issue');
-
 // create an observer instance
-var observer = new MutationObserver(function(mutations) {
-  mutations.forEach(function(mutation) {
-  console.log(mutation.type);
-  });
-});
+var observer = new MutationObserver(reactToJIRAStatusChange);
 // configuration of the observer:
 var config = { attributes: true, childList: true, characterData: true };
-
 // pass in the target node, as well as the observer options
 observer.observe(target, config);
 
+function reactToJIRAStatusChange(mutations) {
+  mutations.forEach(function(mutation) { console.log(mutation.type); });
+
+  let headerInfo = state.headerInfos[4];
+  refreshJIRAHeader(null);
+}
 
 //TODO modularize me
 }
