@@ -1,9 +1,7 @@
 chrome.extension.sendMessage({}, function(response) {
-  var observer;
   var readyStateCheckInterval = setInterval(function() {
-    // if (!observer) {observer = startWatchingJIRADOM();}
     if (document.readyState !== 'interactive' &&
-        document.readyState !== 'loading') return; //loading, interactive or complete
+        document.readyState !== 'loading') return; //loading -> interactive -> complete
     clearInterval(readyStateCheckInterval);
     console.log("Hello. This message was sent from scripts/inject.js");
     inject();
@@ -16,7 +14,7 @@ chrome.extension.sendMessage({}, function(response) {
 function inject() {
 //**START CONFIGURABLE CONSTANTS**//
 let state = {
-  'countableTexts': ['Passed', 'Failed', 'Skipped', 'Blocked'],
+  'countableTestResults': ['Passed', 'Failed', 'Skipped', 'Blocked', 'OutScope'],
   'countableJIRAStatuses': ['ON HOLD', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS']
 };
 
@@ -59,6 +57,7 @@ function domConnectors() {
 
   return {headerInfos};
 
+  //utility functions...
   function getJIRAStatusFromTd(td) {
     if(td === undefined) td = this.td;
     let status = td.querySelector('span.aui-lozenge').innerText;
@@ -67,19 +66,21 @@ function domConnectors() {
 
   function createHeaderInfo(td, index, jIRAInfos, parentTable, statsRow, testResultsHeader) {
     let label = null;
-    let jIRAInfosHere = jIRAInfos.filter((info) => info.yIndex == index);
-    let jIRAInfosForText = {};
     let tdEls = getTdsForHeaderIndex(index, parentTable) || [];
-    let tdElsForText = {};
+    let tdElsForResult = {};
+    let jIRAInfosHere = jIRAInfos.filter((info) => info.yIndex == index);
+    let jIRAInfosForStatus = {};
 
     if(index === 0) {
       label = 'leftAxis';
+    } else if(index == 1) {
+      label = 'testCaseId';
     } else if(td == testResultsHeader) {
       label = 'testResult';
 
-      state.countableTexts.forEach((text) => {
-        let filtered = tdEls.filter((tdEl) => tdEl.innerText.indexOf(text) === 0);
-        tdElsForText[text] = filtered;
+      state.countableTestResults.forEach((result) => {
+        let filtered = tdEls.filter((tdEl) => tdEl.innerText.indexOf(result) === 0);
+        tdElsForResult[result] = filtered;
       });
 
     } else if(jIRAInfosHere.length > 0) {
@@ -93,9 +94,9 @@ function domConnectors() {
       // 'headerEl': td,
       'statsEl': statsEl = statsRow.insertCell(),
       'tdEls': tdEls,
-      'tdElsForText': tdElsForText,
+      'tdElsForResult': tdElsForResult,
       'jIRAInfos': jIRAInfosHere,
-      'jIRAInfosForText': jIRAInfosForText
+      'jIRAInfosForStatus': jIRAInfosForStatus
     };
   }//createHeaderInfo
 
@@ -122,15 +123,15 @@ function domConnectors() {
 
 //**COMMON**//
 function groupJIRALinks(jIRAInfosHere) {
-  let jIRAInfosForText = {};
+  let jIRAInfosForStatus = {};
   state.countableJIRAStatuses.forEach((status) => {
     let forStatus = jIRAInfosHere.filter((jIRAInfo) => {
       let infoStatus = jIRAInfo.status();
       return infoStatus.toUpperCase() == status.toUpperCase();
     });
-    jIRAInfosForText[status] = forStatus;
+    jIRAInfosForStatus[status] = forStatus;
   });
-  return jIRAInfosForText;
+  return jIRAInfosForStatus;
 }
 
 //**START PAGE LOAD STATS **//
@@ -144,8 +145,8 @@ function updateStatsUi(headerInfo) {
       headerInfo.statsEl.innerText = 'Stats';
       break;
     case "testResult":
-      state.countableTexts.forEach((text) => {
-        let stat = text + ': ' + headerInfo.tdElsForText[text].length + '<br>';
+      state.countableTestResults.forEach((result) => {
+        let stat = result + ': ' + headerInfo.tdElsForResult[result].length + '<br>';
         headerInfo.statsEl.innerHTML += stat;
       });
       break;
@@ -158,14 +159,14 @@ function updateStatsUi(headerInfo) {
 
 //**START JIRA change events **//
 function refreshJIRAHeader(headerInfo) {
-  //update latest value for jIRAInfosForText
-  headerInfo.jIRAInfosForText = groupJIRALinks(headerInfo.jIRAInfos);
+  //update latest value for jIRAInfosForStatus
+  headerInfo.jIRAInfosForStatus = groupJIRALinks(headerInfo.jIRAInfos);
 
   headerInfo.statsEl.innerHTML = '';
   state.countableJIRAStatuses.forEach((status) => {
                           // headerInfo.jIRAInfos.forEach((jIRAInfo) => {
 
-    let count = headerInfo.jIRAInfosForText[status].length;
+    let count = headerInfo.jIRAInfosForStatus[status].length;
     headerInfo.statsEl.innerHTML += status + ': ' + count + '<br>';
 
     if(status == 'STATUS' && count > 0) {
