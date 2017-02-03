@@ -150,6 +150,8 @@ function groupJIRALinks(jIRAInfosHere) {
 state.headerInfos.forEach(updateStatsUi);
 
 function updateStatsUi(headerInfo) {
+
+  startWatchingJIRADOM(headerInfo);
   switch(headerInfo.label) {
     case 'leftAxis':
       headerInfo.statsEl.innerText = 'Stats';
@@ -161,43 +163,44 @@ function updateStatsUi(headerInfo) {
       });
       break;
     case 'JIRA':
-      startWatchingJIRADOM(headerInfo);
       refreshJIRAHeader(headerInfo);
       break;
     case 'testCaseId':
-      let toBeRun = 0; // QA enginer must get this issue tested ASAP
-      let onHold = 0; // Failed/Blocked (On Hold)
-
-      let testCaseIdHeaderInfos = state.headerInfos[1];
-      let testResultHeaderInfos = state.headerInfos[2];
-      let jIRAHeaderInfos = state.headerInfos[3];
-
-      // jIRAHeaderInfos.jIRAInfos.forEach((jIRAInfo) => {
-      //   let y = jIRAInfo.xIndex;
-      // });
-
-      let jIRAInfosFailedBlockedTestResult = jIRAHeaderInfos.jIRAInfos.filter((jIRAInfo) => {
-        resText = jIRAInfo.resultEl.innerText;
-        return (resText.indexOf('Failed') === 0 || resText.indexOf('Blocked') === 0);
-      });
-
-      let jIRAInfosToBeRun = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
-        return jIRAInfo.status().toUpperCase() === state.jIRAOnHold;
-      });
-
-      let jIRAInfosOnHold = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
-        return jIRAInfo.status().toUpperCase() === state.jIRAOnHold;
-      });
-
-      toBeRun = jIRAInfosToBeRun.length;
-      onHold = jIRAInfosOnHold.length;
-
-      testCaseIdHeaderInfos.statsEl.innerHTML = 'toBeRun: ' + toBeRun + ' onHold: ' + onHold;
-
+      refreshTestCaseIdHeader();
+      break;
   }
 }//updateStatsUi
 
+
 //**START JIRA change events **//
+
+function refreshTestCaseIdHeader() {
+  let toBeRun = 0; // QA enginer must get this issue tested ASAP
+  let onHold = 0; // Failed/Blocked (On Hold)
+
+  let testCaseIdHeaderInfos = state.headerInfos[1];
+  let testResultHeaderInfos = state.headerInfos[2];
+  let jIRAHeaderInfos = state.headerInfos[3];
+
+  let jIRAInfosFailedBlockedTestResult = jIRAHeaderInfos.jIRAInfos.filter((jIRAInfo) => {
+    resText = jIRAInfo.resultEl.innerText;
+    return (resText.indexOf('Failed') === 0 || resText.indexOf('Blocked') === 0);
+  });
+
+  let jIRAInfosToBeRun = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
+    return jIRAInfo.status().toUpperCase() !== state.jIRAOnHold;
+  });
+
+  let jIRAInfosOnHold = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
+    return jIRAInfo.status().toUpperCase() === state.jIRAOnHold;
+  });
+
+  toBeRun = jIRAInfosToBeRun.length;
+  onHold = jIRAInfosOnHold.length;
+
+  testCaseIdHeaderInfos.statsEl.innerHTML = 'toBeRun: ' + toBeRun + ' onHold: ' + onHold;
+}
+
 function refreshJIRAHeader(headerInfo) {
   //update latest value for jIRAInfosForStatus
   headerInfo.jIRAInfosForStatus = groupJIRALinks(headerInfo.jIRAInfos);
@@ -237,6 +240,7 @@ function startWatchingJIRADOM(headerInfo) {
 
     // let headerInfo = state.headerInfos[4];
     if(headerInfo) refreshJIRAHeader(headerInfo);
+    refreshTestCaseIdHeader();
   }
   return true;
 }
