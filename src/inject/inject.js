@@ -17,6 +17,7 @@ let state = {
   'countableTestResults': ['Passed', 'Failed', 'Skipped', 'Blocked', 'OutScope'],
   'countableJIRAStatuses': ['ON HOLD', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS']
 };
+state.jIRAOnHold = state.countableJIRAStatuses[0].toUpperCase();
 
 //**START DOM CONNECTORS **//
 Object.assign(state, domConnectors());
@@ -27,7 +28,7 @@ function domConnectors() {
     document.querySelectorAll('thead > tr > th > div.tablesorter-header-inner'))
     .filter((el) => (el.innerText.indexOf('Test Result') === 0))  //The first p should contain "Test Result".
     [0].parentNode;                                               //Take the parent th.
-
+  let xIndexOfTestResults = Array.prototype.slice.call(testResultsHeader.parentNode.childNodes).indexOf(testResultsHeader);
   //parentTable
   let parentTable = getClosest('table', testResultsHeader);       //Based on testResultsHeader
   //statsRow
@@ -39,23 +40,33 @@ function domConnectors() {
   let jIRAInfos = [];
   for(i =0; jIRASpans.length > i; i++) {
     let td = getClosest('td', jIRASpans[i]);
-    let yIndex = Array.prototype.slice.call(td.parentNode.childNodes).indexOf(td);
+    let xIndexOfJIRA = Array.prototype.slice.call(td.parentNode.childNodes).indexOf(td);
     jIRAInfo = {
       'td': td,
-      'yIndex': yIndex
+      'xIndex': xIndexOfJIRA,
+      'resultEl': td.parentNode.childNodes[xIndexOfTestResults],
+      'testCaseIdEl': td.parentNode.childNodes[1]
     };
     jIRAInfo.status = getJIRAStatusFromTd.bind(jIRAInfo);
     jIRAInfos.push(jIRAInfo);
   }
 
-  let thElsInFirstThead = Array.prototype.slice.call(
+  /**
+   * headerIndex may be from 0 up to the nth row of the first table.
+   * Returns td elements for the index.
+   */
+  function getTdsForHeaderIndex(headerXIndex, parentTable) {
+    //Assumes there is only one tbody
+    if(parentTable === undefined) parentTable = document.querySelector('.confluenceTable'); //umprove the model to refuce britle code.
+    let tds = parentTable.querySelectorAll(
+      'tbody > tr > td:nth-child(' + (headerXIndex+1) + ')');
+    return (Array.prototype.slice.call(tds) || []);
+  }
+
+
+  let thElsInThead = Array.prototype.slice.call(
     getClosest('tr', testResultsHeader).childNodes)
     .filter((thEl) => (thEl.nodeName == "TH"));
-  //headerInfos
-  let headerInfos = thElsInFirstThead.map((td, index) =>
-    createHeaderInfo(td, index, jIRAInfos, parentTable, statsRow, testResultsHeader));
-
-  return {headerInfos};
 
   //utility functions...
   function getJIRAStatusFromTd(td) {
@@ -64,23 +75,29 @@ function domConnectors() {
     return status;
   }
 
-  function createHeaderInfo(td, index, jIRAInfos, parentTable, statsRow, testResultsHeader) {
+  //headerInfos
+  let headerInfos = thElsInThead.map((th, xIndex) =>
+    createHeaderInfo(th, xIndex, jIRAInfos, parentTable, statsRow, testResultsHeader));
+  return {headerInfos};
+
+
+  function createHeaderInfo(th, xIndex, jIRAInfos, parentTable, statsRow, testResultsHeader) {
     let label = null;
-    let tdEls = getTdsForHeaderIndex(index, parentTable) || [];
-    let tdElsForResult = {};
-    let jIRAInfosHere = jIRAInfos.filter((info) => info.yIndex == index);
+    let resultEls = getTdsForHeaderIndex(xIndex, parentTable) || [];
+    let resultElsForResult = {};
+    let jIRAInfosHere = jIRAInfos.filter((info) => info.xIndex == xIndex);
     let jIRAInfosForStatus = {};
 
-    if(index === 0) {
+    if(xIndex === 0) {
       label = 'leftAxis';
-    } else if(index == 1) {
+    } else if(xIndex == 1) {
       label = 'testCaseId';
-    } else if(td == testResultsHeader) {
+    } else if(th == testResultsHeader) {
       label = 'testResult';
 
       state.countableTestResults.forEach((result) => {
-        let filtered = tdEls.filter((tdEl) => tdEl.innerText.indexOf(result) === 0);
-        tdElsForResult[result] = filtered;
+        let filtered = resultEls.filter((resultEl) => resultEl.innerText.indexOf(result) === 0);
+        resultElsForResult[result] = filtered;
       });
 
     } else if(jIRAInfosHere.length > 0) {
@@ -88,16 +105,17 @@ function domConnectors() {
       //see refreshJIRAHeader for data population
     }
 
-    return {
+    let headerInfo = {
       'label': label,
-      'index': index,
-      // 'headerEl': td,
+      'xIndex': xIndex,
+      // 'headerEl': th,
       'statsEl': statsEl = statsRow.insertCell(),
-      'tdEls': tdEls,
-      'tdElsForResult': tdElsForResult,
+      'resultEls': resultEls,
+      'resultElsForResult': resultElsForResult,
       'jIRAInfos': jIRAInfosHere,
       'jIRAInfosForStatus': jIRAInfosForStatus
     };
+    return headerInfo;
   }//createHeaderInfo
 
 
@@ -109,16 +127,7 @@ function domConnectors() {
     return res;
   }
 
-  /**
-   * headerIndex may be from 0 up to the nth row of the first table.
-   * Returns td elements for the index.
-   */
-  function getTdsForHeaderIndex(headerIndex, parentTable) {
-    //Assumes there is only one tbody
-    let tds = parentTable.querySelectorAll(
-      'tbody > tr > td:nth-child(' + (headerIndex+1) + ')');
-    return (Array.prototype.slice.call(tds) || []);
-  }
+
 }//domConnectors
 
 //**COMMON**//
@@ -134,6 +143,7 @@ function groupJIRALinks(jIRAInfosHere) {
   return jIRAInfosForStatus;
 }
 
+
 //**START PAGE LOAD STATS **//
 
 //updateStatsUi
@@ -141,19 +151,49 @@ state.headerInfos.forEach(updateStatsUi);
 
 function updateStatsUi(headerInfo) {
   switch(headerInfo.label) {
-    case "leftAxis":
+    case 'leftAxis':
       headerInfo.statsEl.innerText = 'Stats';
       break;
-    case "testResult":
+    case 'testResult':
       state.countableTestResults.forEach((result) => {
-        let stat = result + ': ' + headerInfo.tdElsForResult[result].length + '<br>';
+        let stat = result + ': ' + headerInfo.resultElsForResult[result].length + '<br>';
         headerInfo.statsEl.innerHTML += stat;
       });
       break;
-    case "JIRA":
+    case 'JIRA':
       startWatchingJIRADOM(headerInfo);
       refreshJIRAHeader(headerInfo);
       break;
+    case 'testCaseId':
+      let toBeRun = 0; // QA enginer must get this issue tested ASAP
+      let onHold = 0; // Failed/Blocked (On Hold)
+
+      let testCaseIdHeaderInfos = state.headerInfos[1];
+      let testResultHeaderInfos = state.headerInfos[2];
+      let jIRAHeaderInfos = state.headerInfos[3];
+
+      // jIRAHeaderInfos.jIRAInfos.forEach((jIRAInfo) => {
+      //   let y = jIRAInfo.xIndex;
+      // });
+
+      let jIRAInfosFailedBlockedTestResult = jIRAHeaderInfos.jIRAInfos.filter((jIRAInfo) => {
+        resText = jIRAInfo.resultEl.innerText;
+        return (resText.indexOf('Failed') === 0 || resText.indexOf('Blocked') === 0);
+      });
+
+      let jIRAInfosToBeRun = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
+        return jIRAInfo.status().toUpperCase() === state.jIRAOnHold;
+      });
+
+      let jIRAInfosOnHold = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
+        return jIRAInfo.status().toUpperCase() === state.jIRAOnHold;
+      });
+
+      toBeRun = jIRAInfosToBeRun.length;
+      onHold = jIRAInfosOnHold.length;
+
+      testCaseIdHeaderInfos.statsEl.innerHTML = 'toBeRun: ' + toBeRun + ' onHold: ' + onHold;
+
   }
 }//updateStatsUi
 
@@ -179,7 +219,7 @@ function refreshJIRAHeader(headerInfo) {
 
 function startWatchingJIRADOM(headerInfo) {
   // var target = document.querySelector('table.confluenceTable .confluence-jim-macro.jira-issue').parentNode;
-  let selJIRASpans = 'table.confluenceTable td:nth-child(' + (headerInfo.index + 1) + ') span.confluence-jim-macro.jira-issue';
+  let selJIRASpans = 'table.confluenceTable td:nth-child(' + (headerInfo.xIndex + 1) + ') span.confluence-jim-macro.jira-issue';
   let targets = document.querySelectorAll(selJIRASpans);
 
   for(var i = 0; i < targets.length; i++) {
