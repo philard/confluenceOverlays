@@ -211,11 +211,6 @@ function refreshJIRAHeader(headerInfo) {
 
     let count = headerInfo.jIRAInfosForStatus[status].length;
     headerInfo.statsEl.innerHTML += status + ': ' + count + '<br>';
-
-    if(status == 'STATUS' && count > 0) {
-    //sanity check
-    //   headerInfo.statsEl.innerHTML += '***"STATUS" meaning failed RACE CONDITION***';
-    }
   });
 }
 
