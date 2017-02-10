@@ -8,6 +8,10 @@
 //example of using a message handler from the inject scripts
 chrome.extension.onMessage.addListener(
   function(request, sender, sendResponse) {
+    //backup injection
+    // chrome.tabs.insertCSS(sender.tab.id, {code: "body{border:1px solid red}"});
+    // chrome.tabs.insertCSS(sender.tab.id, {file:"src/inject/inject.css"});
+
   	chrome.pageAction.show(sender.tab.id);
     sendResponse();
   });

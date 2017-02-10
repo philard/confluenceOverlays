@@ -1,5 +1,5 @@
 {
-  "name": "CHANGE THIS : Extension boilerplate",
+  "name": "Confluence table stats",
   "version": "0.0.1",
   "manifest_version": 2,
   "description": "This extension was created with the awesome extensionizr.com",
@@ -31,7 +31,8 @@
       ],
       "js": [
         "src/inject/inject.js"
-      ]
+      ],
+      "css": ["src/inject/inject.css"]
     }
   ]
 }

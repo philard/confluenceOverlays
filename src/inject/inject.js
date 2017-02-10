@@ -212,6 +212,15 @@ function refreshTestCaseIdHeader() {
    }
 }
 
+// var path = chrome.extension.getURL('src/inject/inject.css');
+// document.head.append($('<link>')
+//     .attr("rel","stylesheet")
+//     .attr("type","text/css")
+    // .attr("href", path));
+// document.body.write('<link rel="stylesheet" href="' + path + '" type="text/css"/>');
+
+
+
 function refreshJIRAHeader(headerInfo) {
   //update latest value for jIRAInfosForStatus
   headerInfo.jIRAInfosForStatus = groupJIRALinks(headerInfo.jIRAInfos);
