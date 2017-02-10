@@ -180,10 +180,10 @@ function refreshTestCaseIdHeader() {
     let onHold = 0; // Failed/Blocked (On Hold)
 
     let testCaseIdHeaderInfos = state.headerInfos[1];
-    let testResultHeaderInfos = state.headerInfos[2];
-    let jIRAHeaderInfos = state.headerInfos[3];
+    let testResultHeaderInfos = state.headerInfos.filter((h) => h.label == 'testResult');
+    let jIRAHeaderInfos = state.headerInfos.filter((h) => h.label == 'JIRA');
 
-    let jIRAInfosFailedBlockedTestResult = jIRAHeaderInfos.jIRAInfos.filter((jIRAInfo) => {
+    let jIRAInfosFailedBlockedTestResult = jIRAHeaderInfos[0].jIRAInfos.filter((jIRAInfo) => {
       resText = jIRAInfo.resultEl.innerText;
       return (resText.indexOf('Failed') === 0 || resText.indexOf('Blocked') === 0);
     });
@@ -200,9 +200,16 @@ function refreshTestCaseIdHeader() {
     onHold = jIRAInfosOnHold.length;
 
     testCaseIdHeaderInfos.statsEl.innerHTML = 'toBeRun: ' + toBeRun + ' onHold: ' + onHold;
+
+    jIRAInfosToBeRun.forEach((jI) => {
+    	let note = (jI.testCaseIdEl.querySelector('.to_be_run') || document.createElement('div'));
+    	note.innerHTML = '(to be run)';
+    	note.className = 'to_be_run';
+    	jI.testCaseIdEl.appendChild(note);
+    });
    } catch (e) {
-     console.log('TODO: build a proper way to lable headers');
-   } 
+     console.log('Test case "toBeRun" analiysis failed');
+   }
 }
 
 function refreshJIRAHeader(headerInfo) {
