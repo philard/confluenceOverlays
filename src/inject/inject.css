@@ -1,3 +1,7 @@
 .to_be_run {
   background-color: red;
 }
+
+.on_hold {
+  background-color: gray;
+}

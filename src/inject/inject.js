@@ -16,7 +16,8 @@ function inject() {
 //**START CONFIGURABLE CONSTANTS**//
 let state = {
   'countableTestResults': ['Passed', 'Failed', 'Skipped', 'Blocked', 'OutScope'],
-  'countableJIRAStatuses': ['ON HOLD', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS']
+  'countableJIRAStatuses': ['ON HOLD', 'QA TEST', 'CLOSED', 'DELIVERED', 'STATUS'],
+  'notOnHoldJIRAStatuses': ['QA TEST', 'CLOSED', 'DELIVERED']
 };
 state.jIRAOnHold = state.countableJIRAStatuses[0].toUpperCase();
 
@@ -190,23 +191,13 @@ function refreshTestCaseIdHeader() {
     });
 
     let jIRAInfosToBeRun = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
-      return statusMeansToBeRun(jIRAInfo.status());
+      return state.notOnHoldJIRAStatuses.indexOf(jIRAInfo.status().toUpperCase()) != -1;
     });
 
     let jIRAInfosOnHold = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
-      return !statusMeansToBeRun(jIRAInfo.status());
+      return state.jIRAOnHold === jIRAInfo.status().toUpperCase();
     });
 
-
-    function statusMeansToBeRun(status) {
-      status = status.toUpperCase();
-      let res;
-      res = status !== state.jIRAOnHold;
-      if (!res) {
-        if (status === 'STATUS') res = undefined;
-      }
-      return res;
-    }
 
     toBeRun = jIRAInfosToBeRun.length;
     onHold = jIRAInfosOnHold.length;
@@ -217,6 +208,13 @@ function refreshTestCaseIdHeader() {
     	let note = (jI.testCaseIdEl.querySelector('.to_be_run') || document.createElement('div'));
     	note.innerHTML = '(to be run)';
     	note.className = 'to_be_run';
+    	jI.testCaseIdEl.appendChild(note);
+    });
+
+    jIRAInfosOnHold.forEach((jI) => {
+      let note = (jI.testCaseIdEl.querySelector('.on_hold') || document.createElement('div'));
+    	note.innerHTML = '(still on hold)';
+    	note.className = 'on_hold';
     	jI.testCaseIdEl.appendChild(note);
     });
    } catch (e) {
