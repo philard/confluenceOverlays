@@ -1,7 +1,8 @@
 chrome.extension.sendMessage({}, function(response) {
   var readyStateCheckInterval = setInterval(function() {
-    if (document.readyState !== 'interactive' &&
-        document.readyState !== 'loading') return; //loading -> interactive -> complete
+    if (document.readyState == 'interactive' ||  document.readyState == 'loading') {
+      return; //loading -> interactive -> complete
+    }
     clearInterval(readyStateCheckInterval);
     console.log("Hello. This message was sent from scripts/inject.js");
     inject();
