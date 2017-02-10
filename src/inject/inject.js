@@ -175,30 +175,34 @@ function updateStatsUi(headerInfo) {
 //**START JIRA change events **//
 
 function refreshTestCaseIdHeader() {
-  let toBeRun = 0; // QA enginer must get this issue tested ASAP
-  let onHold = 0; // Failed/Blocked (On Hold)
+  try {
+    let toBeRun = 0; // QA enginer must get this issue tested ASAP
+    let onHold = 0; // Failed/Blocked (On Hold)
 
-  let testCaseIdHeaderInfos = state.headerInfos[1];
-  let testResultHeaderInfos = state.headerInfos[2];
-  let jIRAHeaderInfos = state.headerInfos[3];
+    let testCaseIdHeaderInfos = state.headerInfos[1];
+    let testResultHeaderInfos = state.headerInfos[2];
+    let jIRAHeaderInfos = state.headerInfos[3];
 
-  let jIRAInfosFailedBlockedTestResult = jIRAHeaderInfos.jIRAInfos.filter((jIRAInfo) => {
-    resText = jIRAInfo.resultEl.innerText;
-    return (resText.indexOf('Failed') === 0 || resText.indexOf('Blocked') === 0);
-  });
+    let jIRAInfosFailedBlockedTestResult = jIRAHeaderInfos.jIRAInfos.filter((jIRAInfo) => {
+      resText = jIRAInfo.resultEl.innerText;
+      return (resText.indexOf('Failed') === 0 || resText.indexOf('Blocked') === 0);
+    });
 
-  let jIRAInfosToBeRun = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
-    return jIRAInfo.status().toUpperCase() !== state.jIRAOnHold;
-  });
+    let jIRAInfosToBeRun = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
+      return jIRAInfo.status().toUpperCase() !== state.jIRAOnHold;
+    });
 
-  let jIRAInfosOnHold = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
-    return jIRAInfo.status().toUpperCase() === state.jIRAOnHold;
-  });
+    let jIRAInfosOnHold = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
+      return jIRAInfo.status().toUpperCase() === state.jIRAOnHold;
+    });
 
-  toBeRun = jIRAInfosToBeRun.length;
-  onHold = jIRAInfosOnHold.length;
+    toBeRun = jIRAInfosToBeRun.length;
+    onHold = jIRAInfosOnHold.length;
 
-  testCaseIdHeaderInfos.statsEl.innerHTML = 'toBeRun: ' + toBeRun + ' onHold: ' + onHold;
+    testCaseIdHeaderInfos.statsEl.innerHTML = 'toBeRun: ' + toBeRun + ' onHold: ' + onHold;
+   } catch (e) {
+     console.log('TODO: build a proper way to lable headers');
+   } 
 }
 
 function refreshJIRAHeader(headerInfo) {
