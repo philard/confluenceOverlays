@@ -190,12 +190,23 @@ function refreshTestCaseIdHeader() {
     });
 
     let jIRAInfosToBeRun = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
-      return jIRAInfo.status().toUpperCase() !== state.jIRAOnHold;
+      return statusMeansToBeRun(jIRAInfo.status());
     });
 
     let jIRAInfosOnHold = jIRAInfosFailedBlockedTestResult.filter((jIRAInfo) => {
-      return jIRAInfo.status().toUpperCase() === state.jIRAOnHold;
+      return !statusMeansToBeRun(jIRAInfo.status());
     });
+
+
+    function statusMeansToBeRun(status) {
+      status = status.toUpperCase();
+      let res;
+      res = status !== state.jIRAOnHold;
+      if (!res) {
+        if (status === 'STATUS') res = undefined;
+      }
+      return res;
+    }
 
     toBeRun = jIRAInfosToBeRun.length;
     onHold = jIRAInfosOnHold.length;
@@ -212,15 +223,6 @@ function refreshTestCaseIdHeader() {
      console.log('Test case "toBeRun" analiysis failed');
    }
 }
-
-// var path = chrome.extension.getURL('src/inject/inject.css');
-// document.head.append($('<link>')
-//     .attr("rel","stylesheet")
-//     .attr("type","text/css")
-    // .attr("href", path));
-// document.body.write('<link rel="stylesheet" href="' + path + '" type="text/css"/>');
-
-
 
 function refreshJIRAHeader(headerInfo) {
   //update latest value for jIRAInfosForStatus
